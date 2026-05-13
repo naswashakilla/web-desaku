@@ -3,33 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buat Pengumuman - Website Desa</title>
+    <title>Edit Pengumuman - Website Desa</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
 
-<nav class="bg-white shadow-md sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-        <a href="/" class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-lg">D</div>
-            <div>
-                <p class="font-bold text-green-800 leading-tight">Desa Sejahtera</p>
-                <p class="text-xs text-gray-400">Portal Informasi Warga</p>
-            </div>
-        </a>
-        <div class="flex gap-4 text-sm items-center">
-            <a href="/" class="text-gray-600 hover:text-green-700">Beranda</a>
-            <a href="/pengumuman" class="text-gray-600 hover:text-green-700">Pengumuman</a>
-            @auth
-                <a href="/dashboard" class="text-gray-600 hover:text-green-700">Dashboard</a>
-                <form method="POST" action="/logout" class="inline">
-                    @csrf
-                    <button class="text-red-500 text-sm hover:underline">Logout</button>
-                </form>
-            @else
-                <a href="/login" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Login</a>
-            @endauth
-        </div>
+<nav class="bg-white shadow px-6 py-4 flex justify-between items-center">
+    <span class="font-bold text-lg text-green-700">🏡 Website Desa</span>
+    <div class="flex gap-4 text-sm items-center">
+        <a href="/" class="text-gray-600 hover:text-green-700">Beranda</a>
+        <a href="/pengumuman" class="text-gray-600 hover:text-green-700">Pengumuman</a>
+        <a href="/dashboard" class="text-gray-600 hover:text-green-700">Dashboard</a>
+        <form method="POST" action="/logout" class="inline">
+            @csrf
+            <button type="submit" class="text-red-500 hover:underline">Logout</button>
+        </form>
     </div>
 </nav>
 
@@ -37,7 +25,7 @@
 
     <div class="flex items-center gap-3 mb-6">
         <a href="/pengumuman" class="text-gray-400 hover:text-gray-600 text-sm">← Kembali</a>
-        <h1 class="text-2xl font-bold">Buat Pengumuman</h1>
+        <h1 class="text-2xl font-bold">Edit Pengumuman</h1>
     </div>
 
     @if($errors->any())
@@ -51,10 +39,11 @@
     @endif
 
     <div class="bg-white border rounded-lg p-6">
-        <form action="{{ route('announcements.store') }}"
+        <form action="{{ route('announcements.update', $announcement) }}"
               method="POST"
               enctype="multipart/form-data">
             @csrf
+            @method('PUT')
 
             {{-- Judul --}}
             <div class="mb-4">
@@ -63,8 +52,7 @@
                 </label>
                 <input type="text"
                        name="title"
-                       value="{{ old('title') }}"
-                       placeholder="Contoh: Jadwal Kerja Bakti RT 05"
+                       value="{{ old('title', $announcement->title) }}"
                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
 
@@ -75,11 +63,12 @@
                 </label>
                 <select name="category"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                    <option value="umum">Umum</option>
-                    <option value="kesehatan">Kesehatan</option>
-                    <option value="keamanan">Keamanan</option>
-                    <option value="kegiatan">Kegiatan</option>
-                    <option value="infrastruktur">Infrastruktur</option>
+                    @foreach(['umum', 'kesehatan', 'keamanan', 'kegiatan', 'infrastruktur'] as $cat)
+                        <option value="{{ $cat }}"
+                            {{ old('category', $announcement->category) == $cat ? 'selected' : '' }}>
+                            {{ ucfirst($cat) }}
+                        </option>
+                    @endforeach
                 </select>
             </div>
 
@@ -90,8 +79,7 @@
                 </label>
                 <textarea name="content"
                           rows="7"
-                          placeholder="Tuliskan isi pengumuman di sini..."
-                          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">{{ old('content') }}</textarea>
+                          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">{{ old('content', $announcement->content) }}</textarea>
             </div>
 
             {{-- Foto --}}
@@ -99,6 +87,13 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                     Foto (opsional)
                 </label>
+                @if($announcement->image)
+                    <div class="mb-2">
+                        <img src="{{ Storage::url($announcement->image) }}"
+                             class="h-32 rounded-lg object-cover">
+                        <p class="text-xs text-gray-400 mt-1">Foto saat ini — upload baru untuk mengganti</p>
+                    </div>
+                @endif
                 <input type="file"
                        name="image"
                        accept="image/*"
@@ -112,10 +107,10 @@
                        name="is_published"
                        id="is_published"
                        value="1"
-                       checked
+                       {{ old('is_published', $announcement->is_published) ? 'checked' : '' }}
                        class="w-4 h-4 text-green-600">
                 <label for="is_published" class="text-sm text-gray-700">
-                    Langsung publikasi ke warga
+                    Publikasi ke warga
                 </label>
             </div>
 
@@ -123,7 +118,7 @@
             <div class="flex gap-3">
                 <button type="submit"
                         class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm hover:bg-green-700 transition">
-                    Simpan Pengumuman
+                    Simpan Perubahan
                 </button>
                 <a href="/pengumuman"
                    class="border border-gray-300 text-gray-600 px-6 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
